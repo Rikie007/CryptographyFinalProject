@@ -17,16 +17,18 @@ while gcd(ctf_e, ctf_phi) != 1:
 
 ctf_d = inverse(ctf_e, ctf_phi)
 
-# Share ctf public key with verification authority (in real system, published publicly)
+# Share ctf public key with verification authority
 with open("ctf_public.json", "w") as f:
     json.dump({"ctfE": str(ctf_e), "ctfN": str(ctf_n)}, f)
 
 print("CTF public key saved for Verification Authority")
 
+
+
 def logic(conn, addr):
     while True:
-        output = conn.recv(4096)
-        data = output.strip().decode()
+        output = conn.recv(4096) # recieved bytes
+        data = output.strip().decode() # converted int to the JSON string format and strinp is removing the newline and etc things
 
         if data == "disconnect":
             conn.close()
@@ -48,7 +50,7 @@ def logic(conn, addr):
                 payload = json.dumps({
                     "ctfE": str(ctf_e),
                     "ctfN": str(ctf_n)
-                })
+                }) # dump fucniton is for making python object into the json string
                 conn.sendall(payload.encode())
                 print(f"Voter registered: (e={voterE})")
 
@@ -68,13 +70,13 @@ def logic(conn, addr):
                     conn.sendall(b"Already signed for this voter!")
                     continue
 
-                # ✅ Verify voter authentication
+                #  Verify voter authentication
                 verified = pow(authSig, voterE, voterN)
                 if verified != blindedVote:
                     conn.sendall(b"Authentication failed!")
                     continue
 
-                # ✅ Sign with CTF private key — server never sees actual vote
+                # Sign with CTF private key — server never sees actual vote
                 signedBlind = pow(blindedVote, ctf_d, ctf_n)
 
                 voted[(voterE, voterN)] = True   # prevent double signing

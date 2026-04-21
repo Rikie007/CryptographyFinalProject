@@ -1,5 +1,5 @@
 import socket, json, sys, random
-from Crypto.Util.number import inverse, getPrime
+from Crypto.Util.number import inverse, getPrime # adding librarys
 from Crypto.Random.random import getrandbits
 from math import gcd
 
@@ -44,30 +44,46 @@ def print_options():
 
 while True:
     print_options()
-    choice = int(input())
+    try:
+        choice = int(input())
+    except ValueError:
+        print("Invalid input. Please enter a number between 1 and 4.")
+        continue
+
+    if choice not in [1, 2, 3, 4]:
+        print("Invalid choice. Please select 1, 2, 3, or 4.")
+        continue
 
     if choice == 1:
         # Send OWN public key to CTF server
-        payload = json.dumps({
+        payload = json.dumps({ # sendint in the jsonn string format
             "choice": "register",
             "voterE": str(voterE),
             "voterN": str(voterN)
         })
-        ctf_socket.sendall(payload.encode())
+        ctf_socket.sendall(payload.encode()) #sendingn after coverting into bits (.encode())
 
-        recv = ctf_socket.recv(4096).decode()
+        recv = ctf_socket.recv(4096).decode() # recieve and then decode you will git the JSON string
         if "registered" in recv.lower() and "already" in recv.lower():
             print(recv)
             continue
 
-        data = json.loads(recv)
+        data = json.loads(recv) # converting json string into python object
         ctfE = int(data["ctfE"])
         ctfN = int(data["ctfN"])
         print("Registered! Got CTF public key.")
 
     elif choice == 2:
         print("Enter candidate id (1-10):")
-        vote = int(input())
+        try:
+            vote = int(input())
+        except ValueError:
+            print("Invalid input. Please enter a number between 1 and 10.")
+            continue
+
+        if not (1 <= vote <= 10):
+            print("Invalid candidate id. Please enter a number between 1 and 10.")
+            continue
 
         # Step 1: Blind under CTF's public key
         r, blindedVote = blind(vote, ctfE, ctfN)
@@ -86,7 +102,7 @@ while True:
         ctf_socket.sendall(payload.encode())
 
         recv = ctf_socket.recv(4096).decode()
-        if "{" not in recv:
+        if "{" not in recv: # if { is the in the response that means there is some error
             print(recv)
             continue
 

@@ -27,13 +27,13 @@ def logic(conn, addr):
                 vote_val      = int(data["vote"])
                 unblindedSig  = int(data["unblindedSig"])
 
-                # ✅ Check CTF actually signed this vote
+                # Check CTF actually signed this vote
                 verified = pow(unblindedSig, ctf_e, ctf_n)
                 if verified != vote_val:
                     conn.sendall(b"Invalid! CTF did not sign this vote.")
                     continue
 
-                # ✅ Prevent replay attack (same sig used twice)
+                # Prevent replay attack (same sig used twice)
                 if unblindedSig in usedSignatures:
                     conn.sendall(b"This vote was already cast!")
                     continue
