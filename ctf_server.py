@@ -107,4 +107,8 @@ try:
 except KeyboardInterrupt:
     print("Shutting down CTF server...")
 finally:
+<<<<<<< HEAD
     server_socket.close()
+=======
+    server_socket.close()
+>>>>>>> 456122bdbcd6100e69ea40fbeaa4dcb97b00c5a9
