@@ -68,13 +68,13 @@ def logic(conn, addr):
                     conn.sendall(b"Already signed for this voter!")
                     continue
 
-                # ✅ Verify voter authentication
+                # Verify voter authentication
                 verified = pow(authSig, voterE, voterN)
                 if verified != blindedVote:
                     conn.sendall(b"Authentication failed!")
                     continue
 
-                # ✅ Sign with CTF private key — server never sees actual vote
+                # Sign with CTF private key — server never sees actual vote
                 signedBlind = pow(blindedVote, ctf_d, ctf_n)
 
                 voted[(voterE, voterN)] = True   # prevent double signing
