@@ -77,7 +77,7 @@ while True:
             data = json.loads(recv)
             ctfE = int(data["ctfE"])
             ctfN = int(data["ctfN"])
-            print("✓ Registered! Got CTF public key.")
+            print("Registered! Got CTF public key.")
         except json.JSONDecodeError as e:
             print(f" Error parsing server response: {str(e)}")
             continue
@@ -138,7 +138,7 @@ while True:
                 print("Local verification failed!")
                 continue
 
-            print("✓ CTF signature verified locally.")
+            print("CTF signature verified locally.")
 
             # Step 6: Send to Verification Authority — NO voter identity attached
             payload = json.dumps({
@@ -163,7 +163,7 @@ while True:
             payload = json.dumps({"choice": "results"})
             va_socket.sendall(payload.encode())
             results = va_socket.recv(4096).decode()
-            print("✓ Current Results:")
+            print("Current Results:")
             print(results)
         except Exception as e:
             print(f" Error fetching results: {str(e)}")
@@ -175,7 +175,7 @@ while True:
             va_socket.send(b"disconnect")
             ctf_socket.close()
             va_socket.close()
-            print("✓ Goodbye!")
+            print("Goodbye!")
             sys.exit()
         except Exception as e:
             print(f"  Error during exit: {str(e)}")

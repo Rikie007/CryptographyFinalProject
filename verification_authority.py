@@ -28,13 +28,13 @@ def logic(conn, addr):
                 nonce         = str(data["nonce"])  # Get nonce from client
                 unblindedSig  = int(data["unblindedSig"])
 
-                # 🛡️ REPLAY ATTACK CHECK: Verify nonce hasn't been used before
+                # REPLAY ATTACK CHECK: Verify nonce hasn't been used before
                 if nonce in usedNonces:
                     conn.sendall(b"ERROR: Replayed vote detected! This nonce has already been counted.")
-                    print(f"⚠️  REPLAY ATTACK BLOCKED: Nonce {nonce[:8]}... already used")
+                    print(f" REPLAY ATTACK BLOCKED: Nonce {nonce[:8]}... already used")
                     continue
 
-                # ✅ Check CTF actually signed this vote+nonce
+                # Check CTF actually signed this vote+nonce
                 # Recreate the message hash that was signed
                 combined_msg = f"{vote_val}:{nonce}"
                 msg_hash = int(hashlib.sha256(combined_msg.encode()).hexdigest(), 16)
