@@ -1,6 +1,7 @@
-import socket, json, _thread
+import socket, json, _thread, hashlib
 
 votesTally = {}
+usedNonces = set()  # Track used nonces to prevent replay attacks
 
 # Load CTF public key (published by CTF server)
 with open("ctf_public.json", "r") as f:
@@ -24,13 +25,27 @@ def logic(conn, addr):
 
             if data["choice"] == "cast":
                 vote_val      = int(data["vote"])
+                nonce         = str(data["nonce"])  # Get nonce from client
                 unblindedSig  = int(data["unblindedSig"])
 
-                # ✅ Check CTF actually signed this vote
+                # 🛡️ REPLAY ATTACK CHECK: Verify nonce hasn't been used before
+                if nonce in usedNonces:
+                    conn.sendall(b"ERROR: Replayed vote detected! This nonce has already been counted.")
+                    print(f"⚠️  REPLAY ATTACK BLOCKED: Nonce {nonce[:8]}... already used")
+                    continue
+
+                # ✅ Check CTF actually signed this vote+nonce
+                # Recreate the message hash that was signed
+                combined_msg = f"{vote_val}:{nonce}"
+                msg_hash = int(hashlib.sha256(combined_msg.encode()).hexdigest(), 16)
+                
                 verified = pow(unblindedSig, ctf_e, ctf_n)
-                if verified != vote_val:
+                if verified != msg_hash:
                     conn.sendall(b"Invalid! CTF did not sign this vote.")
                     continue
+                
+                # Mark nonce as used (prevents replay)
+                usedNonces.add(nonce)
 
                 if 1 <= vote_val <= 10:
                     votesTally[vote_val] = votesTally.get(vote_val, 0) + 1

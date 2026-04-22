@@ -1,4 +1,4 @@
-import socket, json, sys, random
+import socket, json, sys, random, uuid, hashlib
 from Crypto.Util.number import inverse, getPrime
 from Crypto.Random.random import getrandbits
 from math import gcd
@@ -97,9 +97,16 @@ while True:
                 print(" Error: Please enter a valid number between 1 and 10.")
                 continue
 
+        # Step 0: Generate unique nonce for this vote (REPLAY ATTACK PROTECTION)
+        nonce = str(uuid.uuid4())
+        
+        # Create combined message: vote:nonce (for replay protection)
+        combined_msg = f"{vote}:{nonce}"
+        msg_hash = int(hashlib.sha256(combined_msg.encode()).hexdigest(), 16)
+
         # Step 1: Blind under CTF's public key
         try:
-            r, blindedVote = blind(vote, ctfE, ctfN)
+            r, blindedVote = blind(msg_hash, ctfE, ctfN)
 
             # Step 2: Sign blinded vote with OWN private key (authentication)
             authSig = pow(blindedVote, voterD, voterN)
@@ -127,7 +134,7 @@ while True:
 
             # Step 5: Verify locally
             check = pow(unblindedSig, ctfE, ctfN)
-            if check != vote:
+            if check != msg_hash:
                 print("Local verification failed!")
                 continue
 
@@ -137,6 +144,7 @@ while True:
             payload = json.dumps({
                 "choice": "cast",
                 "vote": str(vote),
+                "nonce": nonce,
                 "unblindedSig": str(unblindedSig)
             })
             va_socket.sendall(payload.encode())
