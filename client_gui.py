@@ -173,7 +173,7 @@ def view_results():
         # Parse and display results
         try:
             results_dict = json.loads(results)
-            display_text = "📊 VOTING RESULTS\n" + "="*30 + "\n"
+            display_text = "VOTING RESULTS\n" + "="*30 + "\n"
             
             if not results_dict:
                 display_text += "No votes yet.\n"
@@ -217,7 +217,7 @@ root.geometry("500x400")
 root.resizable(False, False)
 
 # Title
-title_label = tk.Label(root, text="🗳️  SECURE VOTING SYSTEM", font=("Arial", 18, "bold"))
+title_label = tk.Label(root, text="SECURE VOTING SYSTEM", font=("Arial", 18, "bold"))
 title_label.pack(pady=15)
 
 # Frame for buttons
