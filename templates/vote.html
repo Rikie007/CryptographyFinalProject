@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+{% block title %}Cast Vote{% endblock %}
+
+{% block content %}
+<div class="page-wrapper">
+  <div class="page-header">
+    <div class="section-label">Step 2 of 2</div>
+    <h1 class="page-title">Cast Your Vote</h1>
+    <p class="page-sub">Select one candidate. Your choice is anonymised with blind signatures before submission.</p>
+  </div>
+
+  <!-- Not-registered warning -->
+  <div id="notRegisteredWarning" class="alert-custom warning hidden">
+    <i class="bi bi-exclamation-triangle-fill"></i>
+    You must <a href="/register-page" class="alert-link">register first</a> before casting a vote.
+  </div>
+
+  <!-- Already voted banner -->
+  <div id="alreadyVotedBanner" class="alert-custom success hidden">
+    <i class="bi bi-check-circle-fill"></i>
+    You have already voted in this session. Visit the <a href="/results-page" class="alert-link">Results page</a> to see the tally.
+  </div>
+
+  <!-- Vote Process Timeline (shown during voting) -->
+  <div id="voteTimeline" class="vote-timeline hidden">
+    <div class="timeline-header">Processing your vote…</div>
+    <div class="timeline-steps" id="timelineSteps">
+      <div class="t-step" id="t1"><span class="t-icon"><i class="bi bi-hourglass"></i></span><span>Generating nonce</span></div>
+      <div class="t-step" id="t2"><span class="t-icon"><i class="bi bi-hourglass"></i></span><span>Hashing vote + nonce</span></div>
+      <div class="t-step" id="t3"><span class="t-icon"><i class="bi bi-hourglass"></i></span><span>Blinding under CTF key</span></div>
+      <div class="t-step" id="t4"><span class="t-icon"><i class="bi bi-hourglass"></i></span><span>Signing with voter key</span></div>
+      <div class="t-step" id="t5"><span class="t-icon"><i class="bi bi-hourglass"></i></span><span>CTF blind signing</span></div>
+      <div class="t-step" id="t6"><span class="t-icon"><i class="bi bi-hourglass"></i></span><span>Unblinding signature</span></div>
+      <div class="t-step" id="t7"><span class="t-icon"><i class="bi bi-hourglass"></i></span><span>Local verification</span></div>
+      <div class="t-step" id="t8"><span class="t-icon"><i class="bi bi-hourglass"></i></span><span>Submitting to VA</span></div>
+    </div>
+  </div>
+
+  <!-- Candidate Grid -->
+  <div id="candidateSection">
+    <div class="candidates-grid" id="candidatesGrid">
+      {% set names = [
+        "Alice Chen", "Bob Nakamura", "Carol Singh", "David Okafor",
+        "Eva Müller", "Faisal Al-Rashid", "Grace Kim", "Hiro Tanaka",
+        "Iris Patel", "James Osei"
+      ] %}
+      {% set icons = [
+        "bi-brightness-high","bi-tree-fill","bi-people-fill","bi-lightning-fill",
+        "bi-heart-pulse-fill","bi-globe2","bi-shield-fill","bi-cpu-fill",
+        "bi-leaf-fill","bi-stars"
+      ] %}
+      {% for i in range(1, 11) %}
+      <label class="candidate-card" for="cand{{ i }}">
+        <input type="radio" name="candidate" id="cand{{ i }}" value="{{ i }}" />
+        <div class="candidate-inner">
+          <div class="candidate-number">#{{ i }}</div>
+          <div class="candidate-avatar">
+            <i class="bi {{ icons[i-1] }}"></i>
+          </div>
+          <div class="candidate-name">{{ names[i-1] }}</div>
+          <div class="candidate-party">Candidate {{ i }}</div>
+          <div class="candidate-check"><i class="bi bi-check-circle-fill"></i></div>
+        </div>
+      </label>
+      {% endfor %}
+    </div>
+
+    <div class="vote-action-bar">
+      <div class="selection-hint" id="selectionHint">
+        <i class="bi bi-hand-index-fill"></i> Select a candidate above
+      </div>
+      <button class="btn btn-primary-custom btn-lg" id="castVoteBtn" disabled onclick="castVote()">
+        <span id="castBtnContent"><i class="bi bi-send-fill me-2"></i>Cast Vote Anonymously</span>
+        <span id="castBtnSpinner" class="hidden"><span class="spinner-border spinner-border-sm me-2"></span>Processing…</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Success card -->
+  <div id="voteSuccessCard" class="success-card hidden">
+    <div class="success-icon"><i class="bi bi-check-circle-fill"></i></div>
+    <h2>Vote Counted!</h2>
+    <p>Your ballot was submitted anonymously. The Verification Authority has no record of your identity.</p>
+    <div class="success-details" id="successDetails"></div>
+    <a href="/results-page" class="btn btn-primary-custom mt-4">
+      <i class="bi bi-bar-chart-fill me-2"></i>View Live Results
+    </a>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let selectedCandidate = null;
+
+// Candidate selection
+document.querySelectorAll('input[name="candidate"]').forEach(radio => {
+  radio.addEventListener('change', () => {
+    selectedCandidate = parseInt(radio.value);
+    document.getElementById('castVoteBtn').disabled = false;
+    document.getElementById('selectionHint').innerHTML =
+      `<i class="bi bi-check2 me-1"></i> Candidate #${selectedCandidate} selected`;
+  });
+});
+
+const STEPS = ['t1','t2','t3','t4','t5','t6','t7','t8'];
+
+function animateStep(idx, status) {
+  const el = document.getElementById(STEPS[idx]);
+  el.className = 't-step ' + status;
+  const icon = el.querySelector('.t-icon i');
+  icon.className = status === 'done' ? 'bi bi-check-circle-fill'
+                 : status === 'active' ? 'bi bi-arrow-right-circle-fill'
+                 : 'bi bi-x-circle-fill';
+}
+
+async function castVote() {
+  if (!selectedCandidate) return;
+
+  setLoading('castVoteBtn', 'castBtnContent', 'castBtnSpinner', true);
+
+  // Show timeline
+  document.getElementById('voteTimeline').classList.remove('hidden');
+  document.getElementById('voteTimeline').scrollIntoView({ behavior: 'smooth' });
+
+  // Reset steps
+  STEPS.forEach((_, i) => animateStep(i, 'pending'));
+
+  // Simulate step-by-step feedback (the real work is server-side)
+  const delays = [200, 300, 300, 300, 800, 400, 300, 500];
+  for (let i = 0; i < STEPS.length - 1; i++) {
+    animateStep(i, 'active');
+    await sleep(delays[i]);
+    animateStep(i, 'done');
+  }
+  animateStep(STEPS.length - 1, 'active');
+
+  try {
+    const res = await fetch('/api/vote', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ vote: selectedCandidate })
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      animateStep(STEPS.length - 1, 'done');
+      await sleep(400);
+
+      document.getElementById('candidateSection').classList.add('hidden');
+      document.getElementById('voteTimeline').classList.add('hidden');
+      document.getElementById('voteSuccessCard').classList.remove('hidden');
+      document.getElementById('successDetails').textContent =
+        `Candidate #${data.candidate} received your anonymous vote.`;
+      updateNavStatus();
+      showToast('Vote cast successfully!', 'success');
+    } else {
+      animateStep(STEPS.length - 1, 'error');
+      showToast(data.message, 'error');
+      setLoading('castVoteBtn', 'castBtnContent', 'castBtnSpinner', false);
+    }
+  } catch(e) {
+    animateStep(STEPS.length - 1, 'error');
+    showToast('Network error: ' + e.message, 'error');
+    setLoading('castVoteBtn', 'castBtnContent', 'castBtnSpinner', false);
+  }
+}
+
+// Check session state
+fetch('/api/status').then(r => r.json()).then(d => {
+  if (!d.registered) {
+    document.getElementById('notRegisteredWarning').classList.remove('hidden');
+    document.getElementById('castVoteBtn').disabled = true;
+  }
+  if (d.voted) {
+    document.getElementById('alreadyVotedBanner').classList.remove('hidden');
+    document.getElementById('candidateSection').style.opacity = '0.4';
+    document.getElementById('candidateSection').style.pointerEvents = 'none';
+  }
+});
+</script>
+{% endblock %}

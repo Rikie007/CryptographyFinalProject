@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% block title %}Register{% endblock %}
+
+{% block content %}
+<div class="page-wrapper">
+  <div class="page-header">
+    <div class="section-label">Step 1 of 2</div>
+    <h1 class="page-title">Voter Registration</h1>
+    <p class="page-sub">Your RSA keypair is generated entirely in the server — private key never leaves your session.</p>
+  </div>
+
+  <div class="row g-4 align-items-start">
+
+    <!-- Registration Card -->
+    <div class="col-lg-6">
+      <div class="content-card">
+        <div class="card-header-custom">
+          <i class="bi bi-person-badge-fill"></i> Register with CTF Server
+        </div>
+        <div class="card-body-custom">
+
+          <!-- Already registered banner -->
+          <div id="alreadyRegistered" class="alert-custom success hidden">
+            <i class="bi bi-check-circle-fill"></i>
+            You are already registered for this session.
+            <a href="/vote-page" class="alert-link">Cast your vote →</a>
+          </div>
+
+          <p class="card-desc">
+            Clicking Register will:
+          </p>
+          <ul class="feature-list">
+            <li><i class="bi bi-check2"></i> Generate a fresh 2048-bit RSA keypair</li>
+            <li><i class="bi bi-check2"></i> Send only your <strong>public key</strong> to the CTF</li>
+            <li><i class="bi bi-check2"></i> Receive the CTF's public key for blind signing</li>
+            <li><i class="bi bi-check2"></i> Store keys securely in your session</li>
+          </ul>
+
+          <button class="btn btn-primary-custom w-100 mt-3" id="registerBtn" onclick="doRegister()">
+            <span id="regBtnContent">
+              <i class="bi bi-person-plus-fill me-2"></i>Register Now
+            </span>
+            <span id="regBtnSpinner" class="hidden">
+              <span class="spinner-border spinner-border-sm me-2"></span>Generating keys…
+            </span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Key display -->
+      <div class="content-card mt-4 hidden" id="keyDisplayCard">
+        <div class="card-header-custom">
+          <i class="bi bi-key-fill"></i> Your Public Key (Voter)
+        </div>
+        <div class="card-body-custom">
+          <div class="key-field">
+            <div class="key-label">Public Exponent (e)</div>
+            <div class="key-value" id="displayE">—</div>
+          </div>
+          <div class="key-field">
+            <div class="key-label">Modulus (N) — first 80 chars</div>
+            <div class="key-value mono" id="displayN">—</div>
+          </div>
+          <div class="key-field">
+            <div class="key-label">CTF Modulus (N) — first 80 chars</div>
+            <div class="key-value mono" id="displayCtfN">—</div>
+          </div>
+          <div class="mt-3">
+            <a href="/vote-page" class="btn btn-primary-custom w-100">
+              <i class="bi bi-ballot-fill me-2"></i>Proceed to Vote
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Info sidebar -->
+    <div class="col-lg-6">
+      <div class="content-card info-card">
+        <div class="card-header-custom">
+          <i class="bi bi-info-circle-fill"></i> Why Registration Matters
+        </div>
+        <div class="card-body-custom">
+          <div class="info-block">
+            <div class="info-icon"><i class="bi bi-lock-fill"></i></div>
+            <div>
+              <strong>Authentication Without Identity</strong>
+              <p>The CTF knows you are a legitimate voter (via your public key) but will never know which candidate you voted for.</p>
+            </div>
+          </div>
+          <div class="info-block">
+            <div class="info-icon"><i class="bi bi-1-circle-fill"></i></div>
+            <div>
+              <strong>One Registration = One Blind Signature</strong>
+              <p>The CTF tracks registrations by public key and refuses to sign a second ballot for the same key.</p>
+            </div>
+          </div>
+          <div class="info-block">
+            <div class="info-icon"><i class="bi bi-cpu-fill"></i></div>
+            <div>
+              <strong>2048-bit RSA Security</strong>
+              <p>Key generation uses cryptographically secure prime generation — equivalent to ~112 bits of symmetric security.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RSA formula card -->
+      <div class="content-card mt-4 formula-card">
+        <div class="card-header-custom"><i class="bi bi-calculator-fill"></i> Key Generation</div>
+        <div class="card-body-custom">
+          <div class="formula-line"><span class="formula-step">p, q</span> → large random primes (1024-bit each)</div>
+          <div class="formula-line"><span class="formula-step">N = p·q</span> → 2048-bit modulus (public)</div>
+          <div class="formula-line"><span class="formula-step">φ(N) = (p−1)(q−1)</span> → Euler's totient</div>
+          <div class="formula-line"><span class="formula-step">e</span> → random, gcd(e, φ) = 1 (public exponent)</div>
+          <div class="formula-line"><span class="formula-step">d = e⁻¹ mod φ</span> → private exponent (never sent)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function doRegister() {
+  setLoading('registerBtn', 'regBtnContent', 'regBtnSpinner', true);
+
+  try {
+    const res = await fetch('/api/register', { method: 'POST' });
+    const data = await res.json();
+
+    if (data.success) {
+      showToast('Registration successful!', 'success');
+      updateNavStatus();
+
+      // Show key card
+      document.getElementById('keyDisplayCard').classList.remove('hidden');
+      document.getElementById('displayE').textContent = data.voterE.substring(0, 20) + '…';
+      document.getElementById('displayN').textContent = data.voterN.substring(0, 80) + '…';
+      document.getElementById('displayCtfN').textContent = data.ctfN.substring(0, 80) + '…';
+    } else {
+      showToast(data.message, 'error');
+    }
+  } catch(e) {
+    showToast('Network error: ' + e.message, 'error');
+  }
+
+  setLoading('registerBtn', 'regBtnContent', 'regBtnSpinner', false);
+}
+
+// Check if already registered
+fetch('/api/status').then(r=>r.json()).then(d=>{
+  if (d.registered) {
+    document.getElementById('alreadyRegistered').classList.remove('hidden');
+    document.getElementById('keyDisplayCard').classList.remove('hidden');
+    document.getElementById('displayE').textContent = d.voterE.substring(0, 20) + '…';
+    document.getElementById('displayN').textContent = d.voterN.substring(0, 80) + '…';
+    document.getElementById('displayCtfN').textContent = '(stored in session)';
+  }
+});
+</script>
+{% endblock %}

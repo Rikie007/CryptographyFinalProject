@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% block title %}Home{% endblock %}
+
+{% block content %}
+<div class="page-wrapper">
+
+  <!-- Hero -->
+  <section class="hero-section">
+    <div class="hero-bg-grid"></div>
+    <div class="hero-content">
+      <div class="hero-eyebrow">
+        <span class="pulse-dot"></span>
+        Cryptographically Secure · Anonymous · Tamper-Proof
+      </div>
+      <h1 class="hero-title">
+        Secure Blind Signature<br/>
+        <span class="hero-accent">E-Voting System</span>
+      </h1>
+      <p class="hero-sub">
+        Cast your vote with absolute anonymity. Our system uses RSA blind signatures
+        so neither the Central Tabulating Facility nor the Verification Authority
+        can ever link your identity to your ballot.
+      </p>
+      <div class="hero-actions">
+        <a href="/register-page" class="btn btn-primary-custom btn-lg">
+          <i class="bi bi-person-plus-fill me-2"></i>Register to Vote
+        </a>
+        <a href="/about" class="btn btn-ghost btn-lg">
+          <i class="bi bi-book-fill me-2"></i>How It Works
+        </a>
+      </div>
+    </div>
+
+    <!-- Floating key card -->
+    <div class="hero-visual">
+      <div class="crypto-card">
+        <div class="crypto-card-header">
+          <i class="bi bi-key-fill"></i> Live Session
+        </div>
+        <div class="crypto-card-body" id="homeStatusCard">
+          <div class="status-row">
+            <span class="status-label">Registration</span>
+            <span class="status-val" id="homeRegStatus"><span class="badge bg-secondary">Pending</span></span>
+          </div>
+          <div class="status-row">
+            <span class="status-label">Vote Cast</span>
+            <span class="status-val" id="homeVoteStatus"><span class="badge bg-secondary">Not Yet</span></span>
+          </div>
+          <div class="status-row">
+            <span class="status-label">Anonymity</span>
+            <span class="status-val"><span class="badge bg-success">Guaranteed</span></span>
+          </div>
+          <div class="status-row">
+            <span class="status-label">Replay Protection</span>
+            <span class="status-val"><span class="badge bg-success">Active</span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How it works -->
+  <section class="section-block">
+    <div class="section-label">The Voting Flow</div>
+    <h2 class="section-title">Four steps, zero privacy leaks</h2>
+
+    <div class="flow-grid">
+      <div class="flow-step">
+        <div class="flow-icon" style="--c:#6366f1"><i class="bi bi-person-badge"></i></div>
+        <h3>Register</h3>
+        <p>Your browser generates a unique RSA keypair. Only your public key is sent to the CTF — never your identity.</p>
+      </div>
+      <div class="flow-arrow"><i class="bi bi-arrow-right"></i></div>
+      <div class="flow-step">
+        <div class="flow-icon" style="--c:#8b5cf6"><i class="bi bi-eye-slash-fill"></i></div>
+        <h3>Blind</h3>
+        <p>Your ballot is mathematically blinded before the CTF signs it. The CTF signs without ever seeing your vote.</p>
+      </div>
+      <div class="flow-arrow"><i class="bi bi-arrow-right"></i></div>
+      <div class="flow-step">
+        <div class="flow-icon" style="--c:#a855f7"><i class="bi bi-pen-fill"></i></div>
+        <h3>Sign</h3>
+        <p>The CTF's blind signature is unblinded and verified locally in your browser before submission.</p>
+      </div>
+      <div class="flow-arrow"><i class="bi bi-arrow-right"></i></div>
+      <div class="flow-step">
+        <div class="flow-icon" style="--c:#d946ef"><i class="bi bi-check2-circle"></i></div>
+        <h3>Count</h3>
+        <p>The Verification Authority counts your vote using only the signature — your identity remains unknown.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Trust Pillars -->
+  <section class="section-block">
+    <div class="section-label">Security Properties</div>
+    <h2 class="section-title">What protects your vote</h2>
+
+    <div class="row g-4">
+      <div class="col-md-4">
+        <div class="pillar-card">
+          <div class="pillar-icon"><i class="bi bi-incognito"></i></div>
+          <h4>Voter Anonymity</h4>
+          <p>Blind signatures mathematically sever the link between voter identity and ballot content.</p>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="pillar-card">
+          <div class="pillar-icon"><i class="bi bi-shield-check"></i></div>
+          <h4>Unforgeability</h4>
+          <p>2048-bit RSA keys make it computationally infeasible to forge a valid CTF signature.</p>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="pillar-card">
+          <div class="pillar-icon"><i class="bi bi-arrow-repeat"></i></div>
+          <h4>Replay Protection</h4>
+          <p>Every ballot includes a unique UUID nonce; the VA rejects any ballot submitted twice.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Update hero status card from session
+  fetch('/api/status').then(r => r.json()).then(d => {
+    if (d.registered) {
+      document.getElementById('homeRegStatus').innerHTML = '<span class="badge bg-success">Done</span>';
+    }
+    if (d.voted) {
+      document.getElementById('homeVoteStatus').innerHTML = '<span class="badge bg-success">Voted</span>';
+    }
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+{% block title %}About{% endblock %}
+
+{% block content %}
+<div class="page-wrapper">
+  <div class="page-header">
+    <div class="section-label">How It Works</div>
+    <h1 class="page-title">The Cryptography Behind SecureVote</h1>
+    <p class="page-sub">A complete explanation of the protocols, primitives, and trust model.</p>
+  </div>
+
+  <!-- Architecture Diagram -->
+  <div class="content-card mb-5">
+    <div class="card-header-custom"><i class="bi bi-diagram-3-fill"></i> System Architecture</div>
+    <div class="card-body-custom">
+      <div class="arch-diagram">
+        <div class="arch-node voter-node">
+          <div class="arch-icon"><i class="bi bi-person-fill"></i></div>
+          <div class="arch-label">Voter (Browser)</div>
+          <div class="arch-sub">Generates keypair<br/>Blinds ballot<br/>Unblinding + verification</div>
+        </div>
+        <div class="arch-arrows">
+          <div class="arch-arrow-row">
+            <div class="arch-arrow-label up">Public key →</div>
+            <div class="arch-arrow-label down">← CTF public key + blind signature</div>
+          </div>
+        </div>
+        <div class="arch-node ctf-node">
+          <div class="arch-icon"><i class="bi bi-building-lock"></i></div>
+          <div class="arch-label">CTF Server :8080</div>
+          <div class="arch-sub">Validates eligibility<br/>Signs blinded ballot<br/>Never sees vote content</div>
+        </div>
+        <div class="arch-arrows">
+          <div class="arch-arrow-row">
+            <div class="arch-arrow-label up">Anonymous vote + sig →</div>
+            <div class="arch-arrow-label down">← Counted!</div>
+          </div>
+        </div>
+        <div class="arch-node va-node">
+          <div class="arch-icon"><i class="bi bi-clipboard2-check-fill"></i></div>
+          <div class="arch-label">Verification Authority :9090</div>
+          <div class="arch-sub">Verifies CTF signature<br/>Checks nonce uniqueness<br/>Tallies votes</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Concepts -->
+  <div class="row g-4">
+
+    <div class="col-md-6">
+      <div class="concept-card">
+        <div class="concept-header">
+          <div class="concept-icon" style="--cc:#6366f1"><i class="bi bi-lock-fill"></i></div>
+          <h3>RSA Cryptography</h3>
+        </div>
+        <p>RSA (Rivest–Shamir–Adleman) is an asymmetric cryptosystem. Security is based on the computational hardness of factoring large integers.</p>
+        <div class="formula-block">
+          <div class="formula-line">Key generation: N = p·q (p, q prime)</div>
+          <div class="formula-line">Encrypt: C = Mᵉ mod N</div>
+          <div class="formula-line">Decrypt: M = Cᵈ mod N</div>
+          <div class="formula-line">Sign: S = Mᵈ mod N</div>
+          <div class="formula-line">Verify: M = Sᵉ mod N</div>
+        </div>
+        <p class="concept-note">We use 2048-bit keys (p, q each 1024 bits), providing approximately 112 bits of security.</p>
+      </div>
+    </div>
+
+    <div class="col-md-6">
+      <div class="concept-card">
+        <div class="concept-header">
+          <div class="concept-icon" style="--cc:#8b5cf6"><i class="bi bi-eye-slash-fill"></i></div>
+          <h3>Blind Signatures</h3>
+        </div>
+        <p>Invented by David Chaum (1982). Allows a signer to sign a message without seeing its content — like signing a carbon-copy inside a sealed envelope.</p>
+        <div class="formula-block">
+          <div class="formula-line">Choose random blinding factor r</div>
+          <div class="formula-line">Blind:   B = rᵉ · M mod N  (sent to CTF)</div>
+          <div class="formula-line">CTF signs: S_B = Bᵈ mod N</div>
+          <div class="formula-line">Unblind: S = S_B · r⁻¹ mod N</div>
+          <div class="formula-line">Verify:  Sᵉ mod N = M ✓</div>
+        </div>
+        <p class="concept-note">The CTF never sees M (the vote). Yet S is a valid signature on M.</p>
+      </div>
+    </div>
+
+    <div class="col-md-6">
+      <div class="concept-card">
+        <div class="concept-header">
+          <div class="concept-icon" style="--cc:#a855f7"><i class="bi bi-building-lock"></i></div>
+          <h3>CTF — Central Tabulating Facility</h3>
+        </div>
+        <p>The CTF is the trusted authority that issues blind signatures, proving a voter is eligible without learning which candidate they chose.</p>
+        <ul class="concept-list">
+          <li><i class="bi bi-check2-circle"></i> Maintains a registry of approved voters</li>
+          <li><i class="bi bi-check2-circle"></i> Refuses to sign twice for the same voter key</li>
+          <li><i class="bi bi-check2-circle"></i> Verifies voter authentication via their own key</li>
+          <li><i class="bi bi-check2-circle"></i> Never stores or sees the actual vote</li>
+          <li><i class="bi bi-check2-circle"></i> Publishes its public key so anyone can verify</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="col-md-6">
+      <div class="concept-card">
+        <div class="concept-header">
+          <div class="concept-icon" style="--cc:#d946ef"><i class="bi bi-clipboard2-check-fill"></i></div>
+          <h3>Verification Authority</h3>
+        </div>
+        <p>The VA is a separate, independent server that receives anonymous ballots and validates them using only the CTF's public key.</p>
+        <ul class="concept-list">
+          <li><i class="bi bi-check2-circle"></i> Receives votes with no voter identity attached</li>
+          <li><i class="bi bi-check2-circle"></i> Verifies CTF signature on vote+nonce hash</li>
+          <li><i class="bi bi-check2-circle"></i> Rejects any ballot with a repeated nonce</li>
+          <li><i class="bi bi-check2-circle"></i> Maintains the live vote tally</li>
+          <li><i class="bi bi-check2-circle"></i> Cannot link any vote to any registered voter</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="col-md-6">
+      <div class="concept-card">
+        <div class="concept-header">
+          <div class="concept-icon" style="--cc:#ec4899"><i class="bi bi-shield-fill-check"></i></div>
+          <h3>Replay Attack Protection</h3>
+        </div>
+        <p>A replay attack occurs when an adversary captures a valid ballot and re-submits it to inflate a candidate's count. We prevent this with UUID nonces.</p>
+        <div class="formula-block">
+          <div class="formula-line">nonce = uuid4()  (128-bit random)</div>
+          <div class="formula-line">M = SHA-256( vote || ":" || nonce )</div>
+          <div class="formula-line">VA stores: usedNonces = set()</div>
+          <div class="formula-line">If nonce ∈ usedNonces → REJECT</div>
+        </div>
+        <p class="concept-note">The nonce is hashed into the signed message, so it cannot be changed post-signing.</p>
+      </div>
+    </div>
+
+    <div class="col-md-6">
+      <div class="concept-card">
+        <div class="concept-header">
+          <div class="concept-icon" style="--cc:#f43f5e"><i class="bi bi-hash"></i></div>
+          <h3>SHA-256 Hashing</h3>
+        </div>
+        <p>Before blinding, the vote+nonce string is hashed with SHA-256, producing a fixed 256-bit integer. This is what the CTF actually signs.</p>
+        <div class="formula-block">
+          <div class="formula-line">Input:  "3:a8f2c1d0-..." (vote:nonce)</div>
+          <div class="formula-line">Output: 256-bit integer (as big int)</div>
+          <div class="formula-line">Then blinded → signed by CTF</div>
+        </div>
+        <ul class="concept-list mt-2">
+          <li><i class="bi bi-check2-circle"></i> Collision-resistant: can't find two votes with same hash</li>
+          <li><i class="bi bi-check2-circle"></i> Pre-image resistant: can't reverse from hash to vote</li>
+          <li><i class="bi bi-check2-circle"></i> Fits within RSA modulus for signing</li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Full voting flow walkthrough -->
+  <div class="content-card mt-5">
+    <div class="card-header-custom"><i class="bi bi-diagram-2-fill"></i> Complete Voting Protocol — Step by Step</div>
+    <div class="card-body-custom">
+      <div class="protocol-steps">
+        <div class="p-step"><span class="p-num">01</span><div><strong>Register:</strong> Voter generates (e_v, d_v, N_v). Sends (e_v, N_v) to CTF. CTF returns (e_ctf, N_ctf).</div></div>
+        <div class="p-step"><span class="p-num">02</span><div><strong>Nonce:</strong> nonce = uuid4(). combined = f"{vote}:{nonce}". M = SHA-256(combined) as integer.</div></div>
+        <div class="p-step"><span class="p-num">03</span><div><strong>Blind:</strong> Pick random r coprime to N_ctf. B = rᵉ_ctf · M mod N_ctf.</div></div>
+        <div class="p-step"><span class="p-num">04</span><div><strong>Auth sign:</strong> auth_sig = B^d_v mod N_v. Proves voter identity to CTF without revealing the vote.</div></div>
+        <div class="p-step"><span class="p-num">05</span><div><strong>CTF signs:</strong> CTF verifies auth_sig, checks not double-voting. Signs: S_B = B^d_ctf mod N_ctf.</div></div>
+        <div class="p-step"><span class="p-num">06</span><div><strong>Unblind:</strong> S = S_B · r⁻¹ mod N_ctf. Now S is a valid CTF signature on M.</div></div>
+        <div class="p-step"><span class="p-num">07</span><div><strong>Local verify:</strong> Assert S^e_ctf mod N_ctf == M. Confirms the signature is genuine.</div></div>
+        <div class="p-step"><span class="p-num">08</span><div><strong>Cast:</strong> Send (vote, nonce, S) to VA — no voter identity. VA verifies S and nonce uniqueness, tallies.</div></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
