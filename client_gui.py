@@ -114,7 +114,9 @@ def cast_vote():
         r, blindedVote = blind(msg_hash, ctfE, ctfN)
 
         # Step 2: Sign blinded vote with OWN private key
-        authSig = pow(blindedVote, voterD, voterN)
+        # Hash blindedVote to match server's updated secure verification
+        blinded_hash = int(hashlib.sha256(str(blindedVote).encode()).hexdigest(), 16)
+        authSig = pow(blinded_hash, voterD, voterN)
 
         # Step 3: Send to CTF server for blind signing
         payload = json.dumps({

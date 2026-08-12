@@ -1,4 +1,4 @@
-import socket, json, random, sys, _thread
+import socket, json, random, sys, _thread, hashlib
 from Crypto.Util.number import inverse, getPrime
 from math import gcd
 
@@ -69,9 +69,11 @@ def logic(conn, addr):
                     continue
 
                 # Verify voter authentication
+                # We hash blindedVote to prevent Textbook RSA forgery attacks
+                blinded_hash = int(hashlib.sha256(str(blindedVote).encode()).hexdigest(), 16)
                 verified = pow(authSig, voterE, voterN)
-                if verified != blindedVote:
-                    conn.sendall(b"Authentication failed!")
+                if verified != blinded_hash:
+                    conn.sendall(b"Authentication failed! Invalid signature.")
                     continue
 
                 # Sign with CTF private key — server never sees actual vote
